@@ -133,7 +133,7 @@ nav#friendsNav div#friendsContainer div.friendContainer h2{
 nav#friendsNav div#friendsContainer div.friendContainer img{
     width: 50px;
     height: 50px;
-    content:url('file:///C:/Users/Owner/Desktop/Shayonion.com/src/pictures/png/friendIcon50x50.png')
+    content:url('https://talkonion.com/src/pictures/png/friendIcon50x50.png')
 }
 nav#prevRoomsNav {
     background-color: #2C2C2C;
@@ -299,7 +299,7 @@ div#gridContainer .cornerSelectorCell h1.highlighted{
     z-index: 3;
 }
 div#gridContainer .cornerSelectorCell div#cornerSelector{ 
-    background-image: url('file:///C:/Users/Owner/Desktop/Shayonion.com/src/pictures/png/cornerSelector.png');
+    background-image: url('https://talkonion.com/src/pictures/png/cornerSelector.png');
     width: 22px;
     height: 32px;
     position: absolute;
@@ -328,7 +328,7 @@ div#gridContainer .buttonsCell hr {
     border-color:#FF5353;
 }
 .buttonsCell button#connect{
-    background-image: url('file:///C:/Users/Owner/Desktop/Shayonion.com/src/pictures/png/connect.png');
+    background-image: url('https://talkonion.com/src/pictures/png/connect.png');
     border: none;
     border-radius: 50%;
     border-top-right-radius: 0;
@@ -338,7 +338,7 @@ div#gridContainer .buttonsCell hr {
     height: 85px;
 }
 .buttonsCell button#disconnect{
-    background-image: url('file:///C:/Users/Owner/Desktop/Shayonion.com/src/pictures/png/disconnect.png');
+    background-image: url('https://talkonion.com/src/pictures/png/disconnect.png');
     border: none;
     border-radius: 50%;
     transition-duration: .25s;
@@ -409,7 +409,7 @@ div.textTitleDiv hr{
     z-index: 3;
 }
 .channelSelector div#cornerSelector{ 
-    background-image: url('file:///C:/Users/Owner/Desktop/Shayonion.com/src/pictures/png/textChannelSelector.png');
+    background-image: url('https://talkonion.com/src/pictures/png/textChannelSelector.png');
     width: 22px;
     height: 32px;
     position: absolute;
