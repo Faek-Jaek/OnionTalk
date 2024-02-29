@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Onion Talk</title>
+    <link rel="preconnect" href="https://fonts.gstatic.com">
+    <link href="https://fonts.googleapis.com/css2?family=Nova+Script" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Nova+Cut" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Nova+Flat" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/peerjs@1.4.7/dist/peerjs.min.js"></script>
+    <script src="https://talkonion.com/socket.io/socket.io.js"></script>
+    <script src="https://talkonion.com/src/js/room.js" defer></script>
+    <link href="https://talkonion.com/src/css/room.css" rel="stylesheet">
+</head>
+<body>
+    <header>
+        <nav id="cornerNav">
+            <div id="titleAndImageContainer">
+                <button><img src="https://talkonion.com/src/pictures/png/userSettingsButton.png"></button>
+                <h1>Onion Talk</h1>
+            </div>
+            <div id="otherStats">
+                <h2>Current_Room:</h2>
+                <h3>Test-Room</h3>
+            </div>
+        </nav>
+        <div class="triangle"></div>
+        <nav id="friendsNav">
+            <div id="titleContainerRow">
+                <div class="titleContainer">
+                <h1>Friends</h1>
+                <hr>
+            </div>
+            </div>
+            
+            <div id="friendsContainer">
+                <div id="friend-container-1" class="friendContainer">
+                    <img><h2>Friend-1</h2>
+                </div>
+                <div id="friend-container-2" class="friendContainer">
+                    <img><h2>Friend-2</h2>
+                </div>
+                <div id="friend-container-3" class="friendContainer">
+                    <img><h2>Friend-3</h2>
+                </div>
+                <div id="friend-container-4" class="friendContainer">
+                    <img><h2>Friend-4</h2>
+                </div>
+                <div id="friend-container-5" class="friendContainer">
+                    <img><h2>Friend-5</h2>
+                </div>
+                <div id="friend-container-6" class="friendContainer">
+                    <img><h2>Friend-6</h2>
+                </div>
+            </div>
+        </nav>
+        <nav id="prevRoomsNav">
+            <div class="titleContainer">
+                <h1>Previous Rooms</h1>
+            </div>
+            <div id="prevRoomsContainer">
+                <ul>
+                    <li><h2>Room-1</h2></li>
+                    <li><h2>Room-2</h2></li>
+                    <li><h2>Room-3</h2></li>
+                    <li><h2>Room-4</h2></li>
+                    <li><h2>Room-5</h2></li>
+                    <li><h2>Room-6</h2></li>
+                    <li><h2>Room-7</h2></li>
+                    <li><h2>Room-8</h2></li>
+                    <li><h2>Room-9</h2></li>
+                    <li><h2>Room-10</h2></li>
+                    <li><h2>Room-11</h2></li>
+                    <li><h2>Room-12</h2></li>
+                </ul>
+            </div>
+        </nav>
+    </header>
+    <main>
+        <section id="voicePanel">
+            <div id="gridContainer">
+                <div class="titleCell">
+                    <h1>Corner Name</h1>
+                    <hr>
+                </div>
+                <div class="connectedUserCell"> 
+                    <div id="connectedClientContainer" class="connectedUserContainer">
+                        <div class="connectedUserNameContainer">
+                            <h2>Connected-Client-Name-1</h2>
+                            <hr>
+                        </div>
+                    </div>
+                </div>
+                <div class="cornerSelectorCell"> 
+                    <h1 class="highlighted">1<div id="cornerSelector"></div></h1>
+                    <h1>2</h1>
+                    <h1>3</h1>
+                    <h1>4</h1>
+                    
+                </div>
+                <div class="buttonsCell"> 
+                    <hr>
+                    <div id="buttons">
+                        <button id="disconnect">
+                        </button>
+                        <button id='connect'>
+                        </button>  
+                    </div>
+                    
+                </div>
+            </div>               
+        </section>
+        <section class="textPanel">
+            <div class="textTitleDiv">
+                <h1>Chat</h1>
+                <hr>
+            </div>
+            <div class="mainChatDiv">
+
+            </div>
+            <div class="channelSelector">
+                <h1 class="highlighted">1<div id="cornerSelector"></div></h1>
+                <h1>2</h1>
+                <h1>3</h1>
+                <h1>4</h1>
+                
+            </div>
+            <div class="textInputDiv">
+                <div id="caretDiv">
+                    <h2>>:</h2>
+                </div>
+                <input>
+            </div>
+        </section>
+    </main>
+</body>
+</html>

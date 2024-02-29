@@ -1,0 +1,448 @@
+nav#cornerNav{
+    width: 40vh;
+    height: 40vh;
+    position: absolute;
+    left: 0px;
+    top: 0px;
+    z-index: 2;
+    display: flex;
+    flex-direction: column;
+}
+.triangle{
+    position: absolute;
+    width: 0;
+    height: 0;
+    left: 0px;
+    top: 0px;
+	border-left: 40vh solid #212121;
+	border-bottom: 40vh solid transparent;
+    z-index: 1;
+}
+nav#cornerNav div#titleAndImageContainer{
+    display: flex;
+    flex-direction: row;
+    justify-content: flex-start;
+    align-items: center;
+}
+nav#cornerNav div#titleAndImageContainer button{
+    border: none;
+    background: none;
+}
+nav#cornerNav div#titleAndImageContainer button img{
+    width: 85px;
+    size: 85px;
+    background: none;
+}
+nav#cornerNav div#titleAndImageContainer h1{
+    font-family: 'Nova Cut';
+    font-size: 45px;
+    color: #FF5353;
+}
+nav#cornerNav div#otherStats{
+    display: flex;
+    flex-direction: row;
+    justify-content: flex-start;
+    align-items: center;
+    width: 25vw;
+    height: auto;
+}
+nav#cornerNav div#otherStats h2{
+    font-size: 20px;
+    font-family: 'Nova Flat';
+    color: #FF5353;
+    font-weight: 200;
+}
+nav#cornerNav div#otherStats h3{
+    font-size: 20px;
+    font-family: 'Nova Script';
+    color: #D9D9D9;
+    font-weight: 100;
+}
+nav#friendsNav {
+    background-color: #2C2C2C;
+    position: absolute;
+    top: 0;
+    right: 0;
+    width: calc((100vw - 40vh) + 16vh);
+    height: 16vh;
+    z-index: 0;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-evenly;
+    align-items: center;
+}
+nav#friendsNav div.titleContainer{
+    width: 50%;
+    height: min-content;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    justify-content: flex-start;
+}
+nav#friendsNav div#titleContainerRow{
+    width: 100%;
+    height: min-content;
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    justify-content: flex-start;
+}
+div.titleContainer h1{
+    font-family: 'Nova Flat';
+    font-size: 24px;
+    margin: 0;
+    color: #D9D9D9;
+    font-weight: 200;
+}
+nav#friendsNav div.titleContainer hr{
+    border-color: #FF5353;
+    width: 100%;
+}
+nav#friendsNav div#friendsContainer{
+    width: 90%;
+    height: 100px;
+    background-color: #212121;
+    border-radius: 5px;
+    overflow-x: scroll;
+    display: flex;
+    flex-direction: row;
+    justify-content: flex-start;
+    align-items: center;
+    margin-left: 5vw;
+    scrollbar-color: #ff5353 #212121;
+}
+nav#friendsNav div#friendsContainer div.friendContainer{
+    width: auto;
+    height: min-content;
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    justify-content: center;
+    padding-left: 3vw;
+}
+nav#friendsNav div#friendsContainer div.friendContainer h2{
+    font-family: 'Nova Flat';
+    font-weight: 200;
+    font-size: 24;
+    color: #D9D9D9;
+    margin: 0;
+    width: auto;
+    width: 100px;
+    overflow: hidden;
+}
+nav#friendsNav div#friendsContainer div.friendContainer img{
+    width: 50px;
+    height: 50px;
+    content:url('https://talkonion.com/src/pictures/png/friendIcon50x50.png')
+}
+nav#prevRoomsNav {
+    background-color: #2C2C2C;
+    position: absolute;
+    left: 0;
+    bottom: 0;
+    z-index: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: flex-end;
+    padding-bottom: 15px;
+    width: 16vh;
+    height: calc(60vh + 16vh);
+}
+nav#prevRoomsNav div#prevRoomsContainer{
+    background-color: #212121;
+    border-radius: 5px;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    justify-content: flex-start;
+    width: 90%;
+    height: 60%;
+    text-align: left;
+    overflow-y: scroll;
+    scrollbar-color: #ff5353 #212121;
+}
+
+nav#prevRoomsNav div#prevRoomsContainer h2{
+    font-family: 'Nova Flat';
+    font-weight: 200;
+    font-size: 24px;
+    color: #D9D9D9;
+    margin-top: 10px;
+}
+body{
+    background-image: radial-gradient(
+        farthest-corner at 0px 0px,
+        #838383bf -20%,
+        rgb(0 0 0) 100%
+    );
+    background-size: cover;
+    background-repeat: no-repeat;
+    width: 100vw;
+    height: 100vh;
+    margin: 0;
+}
+main {
+    bottom: 0;
+    right: 0;
+    width: calc(100vw - 16vh);
+    height: 84vh;
+    position: absolute;
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    justify-content: space-evenly;
+} 
+section#voicePanel{
+    width: 40vw;
+    max-width: 625px;
+    height: 90%;
+    background-color: #21212165;
+    border-radius: 5px;
+    z-index: 2;
+}
+section#voicePanel div#gridContainer{
+    display: grid;
+    grid-template-columns: 10% 90%;
+    grid-template-rows: 10% 75% 15%;
+    grid-column-gap: 0px;
+    grid-row-gap: 0px;
+    width: 100%;
+    height: 100%;
+}
+    
+div#gridContainer .titleCell {
+    grid-area: 1 / 1 / 2 / 3;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: flex-end;
+}
+div#gridContainer .titleCell h1{
+    color: #FF5353;
+    font-family: 'Nova Cut';
+    font-weight: 200;
+    font-size: 30px;
+    margin: 0;
+}
+section#voicePanel div#gridContainer .titleCell hr{
+    border-color: #FF5353;
+    width: 90%;
+    margin: 0;
+    margin-top: 10px;
+}
+div#gridContainer .connectedUserCell { 
+    grid-area: 2 / 2 / 3 / 3; 
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: flex-start;
+    overflow-y: scroll;
+    scrollbar-color: #ff5353 #212121;
+}
+
+div#gridContainer .connectedUserCell div.connectedUserContainer{
+    width: 100%;
+    height: min-content;
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    justify-content: flex-start;
+    margin-top: 4%;
+}
+div.connectedUserCell div video{
+    width: 90px;
+    height: 90px;
+}
+div#gridContainer .connectedUserCell div.connectedUserNameContainer{
+    width: 100%;
+    height: max-content;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+div#gridContainer .connectedUserCell h2{
+    font-family: 'Nova Flat';
+    font-size: 25px;
+    font-weight: 200;
+    color: #D9D9D9;
+    margin: 0;
+    width: max-content;
+}
+div#gridContainer .connectedUserCell hr{
+    width: 85%;
+    border-color: #FF5353;
+    margin-top: 0;
+}
+div#gridContainer .cornerSelectorCell { 
+    grid-area: 2 / 1 / 3 / 2; 
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+}
+div#gridContainer .cornerSelectorCell h1{ 
+    color: #FF5353;
+    font-family: 'Nova Flat';
+    font-weight: 200;
+    font-size: 25px;
+}
+div#gridContainer .cornerSelectorCell h1.highlighted{ 
+    color: #D9D9D9;
+    font-family: 'Nova Flat';
+    font-weight: 200;
+    font-size: 25px;
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    justify-content: center;
+    z-index: 3;
+}
+div#gridContainer .cornerSelectorCell div#cornerSelector{ 
+    background-image: url('https://talkonion.com/src/pictures/png/cornerSelector.png');
+    width: 22px;
+    height: 32px;
+    position: absolute;
+    z-index: 2;
+    background-position: 50%,50%;
+}
+div#gridContainer .buttonsCell { 
+    grid-area: 3 / 1 / 4 / 3; 
+    height: 100%;
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: flex-start;
+}
+div#gridContainer .buttonsCell #buttons{ 
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    justify-content: space-evenly;
+    width: 100%;
+    height: 100%;
+}
+div#gridContainer .buttonsCell hr {
+    width: 95%;
+    border-color:#FF5353;
+}
+.buttonsCell button#connect{
+    background-image: url('https://talkonion.com/src/pictures/png/connect.png');
+    border: none;
+    border-radius: 50%;
+    border-top-right-radius: 0;
+    transition-duration: .25s;
+    background-color: rgba(0, 0, 0, 0);
+    width: 85px;
+    height: 85px;
+}
+.buttonsCell button#disconnect{
+    background-image: url('https://talkonion.com/src/pictures/png/disconnect.png');
+    border: none;
+    border-radius: 50%;
+    transition-duration: .25s;
+    background-color: rgba(0, 0, 0, 0);
+    width: 85px;
+    height: 85px;
+}
+div#gridContainer .buttonsCell button:hover{
+    box-shadow: 0 10px 5px -4px #D9D9D9;
+}
+section.textPanel {
+    display: grid;
+    grid-template-columns: 10% 90%;
+    grid-template-rows: 10% 80% 10%;
+    grid-column-gap: 0px;
+    grid-row-gap: 0px;
+    background-color: #ff535333;
+    border-radius: 5px;
+    width: 40%;
+    max-width: 625px;
+    height: 90%;
+}
+div.textTitleDiv {
+    grid-area: 1 / 1 / 2 / 3; 
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: flex-end;
+}
+div.textTitleDiv h1{
+    font-family: 'Nova Cut';
+    font-size: 30px;
+    font-weight: 200;
+    color: #D9D9D9;
+    margin: 0;
+}
+div.textTitleDiv hr{
+    border-color: #D9D9D9;
+    width: 90%;
+    margin: 0;
+    margin-top: 10px;
+}
+.textPanel .mainChatDiv {
+    grid-area: 2 / 2 / 3 / 3; 
+}
+.textPanel .channelSelector {
+    grid-area: 2 / 1 / 3 / 2; 
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+}
+.textPanel .channelSelector h1{ 
+    color: #D9D9D9;
+    font-family: 'Nova Flat';
+    font-weight: 200;
+    font-size: 25px;
+}
+.textPanel .channelSelector h1.highlighted{ 
+    color: #212121;
+    font-family: 'Nova Flat';
+    font-weight: 200;
+    font-size: 25px;
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    justify-content: center;
+    z-index: 3;
+}
+.channelSelector div#cornerSelector{ 
+    background-image: url('https://talkonion.com/src/pictures/png/textChannelSelector.png');
+    width: 22px;
+    height: 32px;
+    position: absolute;
+    z-index: 2;
+    background-position: 50%,50%;
+}
+div.textInputDiv {
+    grid-area: 3 / 1 / 4 / 3; 
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+}
+div.textInputDiv div#caretDiv h2{
+    font-family: 'Nova Flat';
+    font-size: 24px;
+    font-weight: 200;
+    color: #D9D9D9;
+}
+
+.textInputDiv input {
+    width: 95%;
+    background-color: rgb(0 0 0 / 0%);
+    border: none;
+    border-bottom: 1px solid #D9D9D9;
+    color: #D9D9D9;
+    text-align: center;
+    font-family: 'Nova Flat';
+    font-size: 20px;
+    font-weight: 200;
+}
+input:focus,
+select:focus,
+textarea:focus,
+button:focus {
+    outline: none;
+}
