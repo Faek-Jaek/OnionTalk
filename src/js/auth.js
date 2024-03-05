@@ -49,8 +49,8 @@ function createKeys(){
             console.log("Public Key:", keys.publicKey);
             console.log("Private Key:", keys.privateKey);
 
-            const pubKeyH2 = document.querySelector('div#keySection').firstElementChild.lastElementChild;
-            const privKeyH2 = document.querySelector('div#keySection').lastElementChild.lastElementChild;
+            const pubKeyH2 = document.querySelector('div#keySection').firstElementChild.querySelector('h2.key');
+            const privKeyH2 = document.querySelector('div#keySection').lastElementChild.querySelector('h2.key');
             const seedPhraseH4 = document.querySelector('div#seedPhrase').lastElementChild;
 
             pubKeyH2.innerText = keys.publicKey;
@@ -58,4 +58,27 @@ function createKeys(){
             seedPhraseH4.innerText = keys.mnemonic;
         }
     }); 
+    // Hide "Create Key Pairs" Button
+    document.querySelector('button#createKeyPairButton').style.display = 'none';
+}
+function copyTextButton(event){
+    const button = event.target;
+    const container = button.closest('div.keyDiv');
+    const h2Element = container.querySelector('h2.key');
+    const textToCopy = h2Element.innerText;
+    
+    const textarea = document.createElement('textarea');
+    textarea.value = textToCopy;
+    textarea.setAttribute('readonly', '');
+    textarea.style.position = 'absolute';
+    textarea.style.left = '-9999px';
+    document.body.appendChild(textarea);
+    textarea.select();
+    document.execCommand('copy');
+    document.body.removeChild(textarea);
+
+    button.textContent = 'Copied!';
+    setTimeout(() => {
+        button.textContent = 'Copy';
+    }, 2000);
 }

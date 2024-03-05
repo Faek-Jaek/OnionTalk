@@ -1,3 +1,9 @@
+// Load the AWS SDK for Node.js
+const AWS = require("aws-sdk");
+// Set the region
+AWS.config.update({ region: "us-east-1" });
+// Create the DynamoDB service object
+var ddb = new AWS.DynamoDB({ apiVersion: "2012-08-10" });
 const express = require('express');
 const app = express();
 const https = require('https');
@@ -5,8 +11,7 @@ const fs = require('fs');
 const { v4: uuidV4 } = require('uuid');
 const bip39 = require('bip39');
 const { createHash } = require('crypto');
-const { generateKeyPair } = require('crypto');
-
+const currentDate = new Date();
 // Setting Vars
 const host = '127.0.0.1';
 const port = 443;
@@ -25,7 +30,23 @@ app.use('/socket.io', function(req, res, next) {
     res.setHeader('Content-Type', 'application/javascript');
     next();
 });
-
+function storePublicKey(pubKey){
+    var params = {
+        TableName: "onionTalk_user_data_table",
+        Item: {
+          publicKey: { S: String(pubKey) },
+          timeOfCreation: { S: String(currentDate.getTime()) },
+        },
+      };
+    // Call DynamoDB to add the item to the table
+    ddb.putItem(params, function (err, data) {
+        if (err) {
+            console.log("Error", err);
+        } else {
+            console.log("Success", data);
+        }
+  });
+}
 async function generateAuthKeyPair() {
     // Generate mnemonic phrase
     const mnemonic = bip39.generateMnemonic();
@@ -36,7 +57,9 @@ async function generateAuthKeyPair() {
     // Derive keys from the seed
     const hash = createHash('sha256', 'Option: {outputLength: 128}').update(seed).digest('hex');
     const publicKey = hash.slice(0, 32); // Assuming 128 characters seed, half for public key, half for private key
-    const privateKey = hash.slice(32);
+    const privateKey = hash.slice(32); 
+    // send public key to dynamoDB
+    storePublicKey(publicKey);
     console.log(`New User Created: ${publicKey}`);
     // Return the generated mnemonic phrase, public key, and private key
     return {
@@ -82,6 +105,48 @@ app.get('/auth/getKeys', (req, res) => {
         res.status(500).json({ error: 'Failed to generate keys' });
     });
 });
+app.get('/auth/checkKey', (req, res) => {
+    try {
+        // Extract the public key from the request query
+        const publicKey = req.query.publicKey;
+        
+        // Check if the public key is valid
+        if (isPubKeyValid(publicKey)) {
+            // Generate a random challenge string using UUID
+            const challengeString = uuidv4();
+            
+            // Encrypt the challenge string using the public key
+            const encryptedChallenge = encryptWithPublicKey(challengeString, publicKey);
+            
+            // Send back the encrypted challenge string and public key in the response
+            res.json({ encryptedChallenge, publicKey });
+        } else {
+            // If the public key is not valid, send an error response
+            res.status(400).json({ error: 'Invalid public key' });
+        }
+    } catch (error) {
+        console.error("Error processing request:", error);
+        res.status(500).json({ error: 'Internal server error' });
+    }
+});
+
+// Function to check if the public key is valid (you can implement your own logic here)
+function isPubKeyValid(publicKey) {
+    // Example: Check if the publicKey is of a certain format or matches certain criteria
+    // check is 32 character
+    // check is in onionTalk_user_data_table
+    // You can add your validation logic here
+    return publicKey && typeof publicKey === 'string' && publicKey.length == 32;
+}
+
+// Function to encrypt data with a public key
+function encryptWithPublicKey(data, publicKey) {
+    // Example: Use Node.js crypto module to encrypt data with RSA public key
+    // You can replace this with your actual encryption logic
+    const bufferData = Buffer.from(data);
+    const encryptedData = crypto.publicEncrypt(publicKey, bufferData);
+    return encryptedData.toString('base64');
+}
 app.get('/room/:room', (req, res) => {
     
     // Serve auth page on root URL
@@ -141,6 +206,9 @@ app.get('/src/*', (req, res) => {
         }
         else if (req.url === '/src/pictures/png/userSettingsButton.png') { // Add this block to handle requests for '*.png'
             res.sendFile(__dirname + '/src/pictures/png/userSettingsButton.png');
+        }
+        else if (req.url === '/src/pictures/png/copyIcon.png') { // Add this block to handle requests for '*.png'
+            res.sendFile(__dirname + '/src/pictures/png/copyIcon.png');
         }
     // ~~~~~~~~ Final CatchAll - Outputs requested URL to the console ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
     else {

@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -9,8 +10,14 @@
     <link href="https://fonts.googleapis.com/css2?family=Nova+Cut" rel="stylesheet">
     <link href="https://fonts.googleapis.com/css2?family=Nova+Flat" rel="stylesheet">
     <link href="https://talkonion.com/src/css/auth.css" rel="stylesheet">
+    <script src="https://talkonion.com/src/js/auth.js" defer></script>
 </head>
 <body>
+    <header onclick="loadCreatePanel()">
+        <h1>
+            Create Account
+        </h1>
+    </header>
     <main>
         <section id="mainContainer">
             <h1>Authentication</h1>
@@ -25,8 +32,22 @@
             </div>
             <button>Decrypt & Connect</button>
         </section>
-        <section id="createKeyPairContainer">
-            
+        <section id="createPanel">
+            <h1>Create Key Pairs:</h1>
+            <div id="keySection">
+                <div class="keyDiv">
+                    <h2 id="publicKeyH2">Public Key:</h2><h2 class="key"></h2><button class='copyButton' onclick="copyTextButton()"></button>
+                </div>
+                <div class="keyDiv">
+                    <h2 id="privateKeyH2">Private Key:</h2><h2 class="key"></h2><button class='copyButton' onclick="copyTextButton()"></button>
+                </div>
+            </div>
+            <div id="seedPhrase">
+                <h3>Seed Phrase:</h3>
+                <h4></h4>
+            </div>
+            <button id="createKeyPairButton" onclick="createKeys()">Create Key Pair</button>
+            <h5>Record & keep seed phrase safe. It's the only way to recover a lost key pair</h5>
         </section>
     </main>
 </body>
