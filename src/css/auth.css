@@ -45,6 +45,7 @@ section#mainContainer, section#createPanel {
     background-color: #212121;
     border-radius: 20px;
     width: 35vw;
+    min-width: 350px;
     height: 50vh;
     padding-left: 5%;
     padding-right: 5%;

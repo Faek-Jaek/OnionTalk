@@ -23,23 +23,23 @@
             <h1>Authentication</h1>
             <div>
                 <h2>Public Key:</h2>
-                <input>
+                <input id="pubKeyInp">
             </div>
-            <button>Get Challenge</button>
+            <button id="getChallenge" onclick="getChallenge(event)">Get Challenge</button>
             <div>
                 <h2>Private Key:</h2>
-                <input>
+                <input id="privKeyInp">
             </div>
-            <button>Decrypt & Connect</button>
+            <button id="decryptAndConn" onclick="decryptAndConn(event)">Decrypt & Connect</button>
         </section>
         <section id="createPanel">
             <h1>Create Key Pairs:</h1>
             <div id="keySection">
                 <div class="keyDiv">
-                    <h2 id="publicKeyH2">Public Key:</h2><h2 class="key"></h2><button class='copyButton' onclick="copyTextButton()"></button>
+                    <h2 id="publicKeyH2">Public Key:</h2><h2 class="key"></h2><button class='copyButton' onclick="copyTextButton(event)"></button>
                 </div>
                 <div class="keyDiv">
-                    <h2 id="privateKeyH2">Private Key:</h2><h2 class="key"></h2><button class='copyButton' onclick="copyTextButton()"></button>
+                    <h2 id="privateKeyH2">Private Key:</h2><h2 class="key"></h2><button class='copyButton' onclick="copyTextButton(event)"></button>
                 </div>
             </div>
             <div id="seedPhrase">

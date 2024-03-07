@@ -10,7 +10,9 @@ const https = require('https');
 const fs = require('fs');
 const { v4: uuidV4 } = require('uuid');
 const bip39 = require('bip39');
+const crypto = require('crypto');
 const { createHash } = require('crypto');
+const { error } = require("console");
 const currentDate = new Date();
 // Setting Vars
 const host = '127.0.0.1';
@@ -47,6 +49,25 @@ function storePublicKey(pubKey){
         }
   });
 }
+function isPublicKeyStored(pubKey){
+    return new Promise((resolve, reject) => {
+        const params = {
+            TableName: "onionTalk_user_data_table",
+            KeyConditionExpression: "publicKey = :pk",
+            ExpressionAttributeValues: {
+                ":pk": { S: pubKey }
+            }
+        };
+
+        ddb.query(params, (err, data) => {
+            if (err) {
+                reject(err);
+            } else {
+                resolve(data.Items.length > 0);
+            }
+        });
+    });
+}
 async function generateAuthKeyPair() {
     // Generate mnemonic phrase
     const mnemonic = bip39.generateMnemonic();
@@ -55,8 +76,8 @@ async function generateAuthKeyPair() {
     const seed = await bip39.mnemonicToSeed(mnemonic);
 
     // Derive keys from the seed
-    const hash = createHash('sha256', 'Option: {outputLength: 128}').update(seed).digest('hex');
-    const publicKey = hash.slice(0, 32); // Assuming 128 characters seed, half for public key, half for private key
+    const hash = crypto.createHash('sha256', 'Option: {outputLength: 128}').update(seed).digest('hex');
+    const publicKey = hash.slice(0, 32); // Assuming 64 characters seed, half for public key, half for private key
     const privateKey = hash.slice(32); 
     // send public key to dynamoDB
     storePublicKey(publicKey);
@@ -68,6 +89,38 @@ async function generateAuthKeyPair() {
         privateKey: privateKey
     };
 }
+// Function to check if the public key is valid (you can implement your own logic here)
+function isPublicKeyValid(publicKey) {
+    // check is in onionTalk_user_data_table
+    return isPublicKeyStored(publicKey).then(exists => {
+        // make sure the `exists` promise is properly returned
+        if (exists){
+            console.log(`Public Key: ${publicKey} exists, and is stored.`)
+            return publicKey && typeof publicKey === 'string' && publicKey.length == 32;
+        }
+        else {
+            // the exists promise was not returned and thus an error has occured.
+            throw error;
+        }
+    }).catch(err => {
+        //Logs the error then returns false as to not lock up any prior code.
+        console.error('Error checking public key is stored: ', err);
+        return false;
+    })
+    
+}
+
+// Function to encrypt data with a public key
+function encryptWithPublicKey(data, publicKey) {
+    // Example: Use Node.js crypto module to encrypt data with RSA public key
+    // You can replace this with your actual encryption logic
+    const bufferData = Buffer.from(data);
+    const encryptedData = crypto.publicEncrypt(publicKey, bufferData);
+    return encryptedData.toString('base64');
+}
+
+
+
 io.on('connection', socket => {
     console.log(`Socket ${socket.id} connected`); //logs each socket connection
   
@@ -105,22 +158,22 @@ app.get('/auth/getKeys', (req, res) => {
         res.status(500).json({ error: 'Failed to generate keys' });
     });
 });
-app.get('/auth/checkKey', (req, res) => {
+app.get('/auth/checkKey*', (req, res) => {
     try {
         // Extract the public key from the request query
         const publicKey = req.query.publicKey;
         
         // Check if the public key is valid
-        if (isPubKeyValid(publicKey)) {
+        if (isPublicKeyValid(publicKey)){
             // Generate a random challenge string using UUID
-            const challengeString = uuidv4();
-            
+            const challengeString = uuidV4();
+            console.log(challengeString);             
             // Encrypt the challenge string using the public key
             const encryptedChallenge = encryptWithPublicKey(challengeString, publicKey);
-            
             // Send back the encrypted challenge string and public key in the response
-            res.json({ encryptedChallenge, publicKey });
-        } else {
+            res.json(encryptedChallenge);
+        }
+        else {
             // If the public key is not valid, send an error response
             res.status(400).json({ error: 'Invalid public key' });
         }
@@ -129,24 +182,6 @@ app.get('/auth/checkKey', (req, res) => {
         res.status(500).json({ error: 'Internal server error' });
     }
 });
-
-// Function to check if the public key is valid (you can implement your own logic here)
-function isPubKeyValid(publicKey) {
-    // Example: Check if the publicKey is of a certain format or matches certain criteria
-    // check is 32 character
-    // check is in onionTalk_user_data_table
-    // You can add your validation logic here
-    return publicKey && typeof publicKey === 'string' && publicKey.length == 32;
-}
-
-// Function to encrypt data with a public key
-function encryptWithPublicKey(data, publicKey) {
-    // Example: Use Node.js crypto module to encrypt data with RSA public key
-    // You can replace this with your actual encryption logic
-    const bufferData = Buffer.from(data);
-    const encryptedData = crypto.publicEncrypt(publicKey, bufferData);
-    return encryptedData.toString('base64');
-}
 app.get('/room/:room', (req, res) => {
     
     // Serve auth page on root URL
