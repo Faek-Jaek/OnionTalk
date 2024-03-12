@@ -110,17 +110,25 @@ function isPublicKeyValid(publicKey) {
     
 }
 
-// Function to encrypt data with a public key
+// Function to encrypt data with a public key using AES-CBC encryption
 function encryptWithPublicKey(data, publicKey) {
-    // Example: Use Node.js crypto module to encrypt data with RSA public key
-    // You can replace this with your actual encryption logic 
+    // Generate a random IV (Initialization Vector)
+    const iv = crypto.randomBytes(16); // IV length is 16 bytes for AES-CBC
 
-    // creates a 'buffer' object from the random uuidv4 string, i.e.: data.
-    const bufferData = Buffer.from(data);
-    // this creates our actual hash using the public key and buffer data.
-    const encryptedData = crypto.publicEncrypt(publicKey, bufferData);
-    return encryptedData.toString('base64');
+    // Create a cipher object with the public key and IV
+    const cipher = crypto.createCipheriv('aes-256-cbc', Buffer.from(publicKey), iv);
+
+    // Encrypt the data
+    let encryptedData = cipher.update(data, 'utf8', 'base64');
+    encryptedData += cipher.final('base64');
+
+    // Combine IV and ciphertext
+    const encryptedDataWithIV = iv.toString('base64') + ':' + encryptedData;
+    
+    // Return the encrypted data with IV
+    return encryptedDataWithIV;
 }
+
 
 
 

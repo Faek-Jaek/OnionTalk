@@ -1,4 +1,3 @@
-const crypto = require('crypto');
 function loadCreatePanel(){
     // hide old panel
     let oldPanel = document.getElementById('mainContainer');
@@ -80,51 +79,82 @@ function copyTextButton(event){
 
     button.textContent = 'Copied!';
 }
+
 async function getChallenge(event) {
     try {
         const button = event.target;
-        const pubInput = button.parentElement.querySelector('input#pubKeyInp')
-        const privInput = button.parentElement.querySelector('input#privKeyInp')
+        const pubInput = button.parentElement.querySelector('input#pubKeyInp');
+        const privInput = button.parentElement.querySelector('input#privKeyInp');
         const publicKey = pubInput.value;
+        let iv;
+        let ciphertext;
+        // Fetch the challenge hash from the server, including the public key as a query parameter
+        fetch(`https://talkonion.com/auth/checkKey?publicKey=${publicKey}`)
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error('Failed to fetch challenge hash');
+                }
+                return response.json();
+            })
+            .then(async responseData => {
+                console.log('Response Data: ', responseData);
+                // Extract the challenge and public key from the response
+                const encryptedChallenge = responseData;
 
-        // Fetch the challenge from the server, including the public key as a query parameter
-        const response = await fetch(`https://talkonion.com/auth/checkKey?publicKey=${publicKey}`);
-        if (!response.ok) {
-            throw new Error('Failed to fetch challenge');
-        }
+                if (typeof encryptedChallenge === 'undefined') {
+                    throw new Error('encryptedChallenge is undefined in server response');
+                }
 
-        // Extract the challenge and public key from the response
-        const { encryptedChallenge } = await response.json();
-        
-        // Decrypt the challenge using the Web Crypto API
-        const privateKey = await window.crypto.subtle.importKey(
-            'pkcs8',
-            privInput.value,
-            {
-                name: 'RSA-OAEP',
-                hash: {name: 'SHA-256'},
-            },
-            false,
-            ['decrypt']
-        );
-        const clearText = await window.crypto.subtle.decrypt(
-            {
-                name: 'RSA-OAEP'
-            },
-            privateKey,
-            Buffer.from(encryptedChallenge, 'base64')
-        );
-
-        // Convert the decrypted data to a string
-        const challengeString = new TextDecoder().decode(clearText);
-
-        // Check if the publicKey received matches the publicKey sent
-        if (publicKey !== responsePublicKey) {
-            throw new Error('Received publicKey does not match');
-        }
-        
-        console.log('Challenge String:', challengeString);
+                // Split the encryptedChallenge into IV and ciphertext parts
+                const [ivBase64, ciphertextBase64] = encryptedChallenge.split(':');
+                
+                // Decode IV and ciphertext from Base64 to ArrayBuffer
+                iv = base64ToArrayBuffer(ivBase64);
+                ciphertext = base64ToArrayBuffer(ciphertextBase64);
+                
+                // Decrypt the challenge using the Web Crypto API
+                let privateKey = await window.crypto.subtle.importKey(
+                    'raw', // Import private key as raw key bytes
+                    new TextEncoder().encode(privInput.value),
+                    {
+                        name: 'AES-CBC',
+                    },
+                    false,
+                    ['decrypt']
+                );
+                return privateKey;
+            }).then(async privateKey => {
+                let clearText = await window.crypto.subtle.decrypt(
+                    {
+                        name: 'AES-CBC',
+                        iv: iv // Initialization Vector (IV)
+                    },
+                    privateKey,
+                    ciphertext
+                );
+                return clearText;
+            })
+            .then(clearText => {
+                console.log('Clear Text: ', clearText);
+                
+                // Convert the decrypted data to a string
+                const challengeString = new TextDecoder().decode(clearText);
+                console.log('Challenge String:', challengeString);
+            })
+            /*.catch(error => {
+                console.error('Error getting challenge:', error);
+            });*/
     } catch (error) {
-        console.error('Error getting challenge:', error);
+        console.error('Error:', error);
     }
+}
+
+// Function to convert a Base64 string to an ArrayBuffer
+function base64ToArrayBuffer(base64String) {
+    const binaryString = window.atob(base64String);
+    const bytes = new Uint8Array(binaryString.length);
+    for (let i = 0; i < binaryString.length; i++) {
+        bytes[i] = binaryString.charCodeAt(i);
+    }
+    return bytes.buffer;
 }
