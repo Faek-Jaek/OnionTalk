@@ -1,3 +1,4 @@
+
 function loadCreatePanel(){
     // hide old panel
     let oldPanel = document.getElementById('mainContainer');
@@ -26,25 +27,59 @@ function loadLoginPanel(){
     nav.setAttribute('onclick','loadCreatePanel()') ;
     nav.firstElementChild.innerHTML = 'Create Account';
 }
-async function getAuthKeyPair() {
+async function storeKey(publicKey) {
     try {
-        const response = await fetch('https://talkonion.com/auth/getKeys');
-        if (!response.ok) {
-            throw new Error('Failed to fetch keys');
+        const keyResponse = await fetch(`https://talkonion.com/auth/storeKey`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ publicKey })
+        });
+        if (!keyResponse.ok) {
+            throw new Error('KeyResponse not OK');
         }
-        const keys = await response.json();
-        return keys;
     } catch (error) {
-        console.error('Error getting keys:', error);
-        return null;
+        console.error('Error storing public-key:', error);
     }
 }
 
-// Example usage
-
 function createKeys(){
-    getAuthKeyPair().then(keys => {
-        if (keys) {
+    try{
+        // Generate a mnemonic phrase (12 words)
+        const mnemonic = Bitcoin.bip39.generateMnemonic();
+
+        // Create a seed buffer from the mnemonic
+        const seed = Bitcoin.bip39.mnemonicToSeedSync(mnemonic);
+
+        // Create an elliptic curve instance using the secp256k1 curve
+        const ec = new elliptic.ec('secp256k1');
+
+        // Derive a key pair from the seed
+        const keyPair = ec.keyFromSecret(seed);
+
+        // Get the public key in uncompressed format
+        const publicKey = keyPair.getPublic('hex');
+
+        // Get the private key
+        const privateKey = keyPair.getPrivate('hex');
+
+        // Construct the keys object
+        const keys = {
+            mnemonic: mnemonic,
+            publicKey: publicKey,
+            privateKey: privateKey
+        };
+        return keys;
+    } catch (error) {
+        console.error('Error generating key-pair: ', error);
+    }
+    then(keys => {
+        storeKey(keys.publicKey)
+    }).catch(error => {
+        console.error('Error storing public-key: ', error);
+    }).then(keys => {
+        // Display the mnemonic phrase and keys
             console.log("Mnemonic Phrase:", keys.mnemonic);
             console.log("Public Key:", keys.publicKey);
             console.log("Private Key:", keys.privateKey);
@@ -56,7 +91,8 @@ function createKeys(){
             pubKeyH2.innerText = keys.publicKey;
             privKeyH2.innerText = keys.privateKey;
             seedPhraseH4.innerText = keys.mnemonic;
-        }
+    }).catch(error => {
+        console.error('Error displaying key-pair: ', error);
     }); 
     // Hide "Create Key Pairs" Button
     document.querySelector('button#createKeyPairButton').style.display = 'none';
@@ -80,81 +116,79 @@ function copyTextButton(event){
     button.textContent = 'Copied!';
 }
 
-async function getChallenge(event) {
+
+async function getChallenge(publicKey) {
     try {
-        const button = event.target;
-        const pubInput = button.parentElement.querySelector('input#pubKeyInp');
-        const privInput = button.parentElement.querySelector('input#privKeyInp');
-        const publicKey = pubInput.value;
-        let iv;
-        let ciphertext;
         // Fetch the challenge hash from the server, including the public key as a query parameter
-        fetch(`https://talkonion.com/auth/checkKey?publicKey=${publicKey}`)
-            .then(response => {
-                if (!response.ok) {
-                    throw new Error('Failed to fetch challenge hash');
-                }
-                return response.json();
-            })
-            .then(async responseData => {
-                console.log('Response Data: ', responseData);
-                // Extract the challenge and public key from the response
-                const encryptedChallenge = responseData;
-
-                if (typeof encryptedChallenge === 'undefined') {
-                    throw new Error('encryptedChallenge is undefined in server response');
-                }
-
-                // Split the encryptedChallenge into IV and ciphertext parts
-                const [ivBase64, ciphertextBase64] = encryptedChallenge.split(':');
-                
-                // Decode IV and ciphertext from Base64 to ArrayBuffer
-                iv = base64ToArrayBuffer(ivBase64);
-                ciphertext = base64ToArrayBuffer(ciphertextBase64);
-                
-                // Decrypt the challenge using the Web Crypto API
-                let privateKey = await window.crypto.subtle.importKey(
-                    'raw', // Import private key as raw key bytes
-                    new TextEncoder().encode(privInput.value),
-                    {
-                        name: 'AES-CBC',
-                    },
-                    false,
-                    ['decrypt']
-                );
-                return privateKey;
-            }).then(async privateKey => {
-                let clearText = await window.crypto.subtle.decrypt(
-                    {
-                        name: 'AES-CBC',
-                        iv: iv // Initialization Vector (IV)
-                    },
-                    privateKey,
-                    ciphertext
-                );
-                return clearText;
-            })
-            .then(clearText => {
-                console.log('Clear Text: ', clearText);
-                
-                // Convert the decrypted data to a string
-                const challengeString = new TextDecoder().decode(clearText);
-                console.log('Challenge String:', challengeString);
-            })
-            /*.catch(error => {
-                console.error('Error getting challenge:', error);
-            });*/
+        fetch(`https://talkonion.com/auth/getChallenge`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ publicKey })
+        }).then(response => {
+            if (!response.ok) {
+                throw new Error('Failed to fetch challenge hash');
+            }
+            return response.json();
+        }).catch(error => {
+            console.error('Error getting challenge:', error);
+        });
     } catch (error) {
         console.error('Error:', error);
     }
 }
+function decryptChallenge(privateKey, encryptedChallenge){
+    try{
+        console.log('Encrypted Challenge: ', encryptedChallenge);
 
-// Function to convert a Base64 string to an ArrayBuffer
-function base64ToArrayBuffer(base64String) {
-    const binaryString = window.atob(base64String);
-    const bytes = new Uint8Array(binaryString.length);
-    for (let i = 0; i < binaryString.length; i++) {
-        bytes[i] = binaryString.charCodeAt(i);
+        // Use the private key to decrypt the encrypted challenge
+        const ec = new elliptic.ec('secp256k1');
+        const decryptedChallenge = ec.keyFromPrivate(privateKey).decrypt(encryptedChallenge).toString();
+
+        // Now 'decryptedChallenge' contains the decrypted challenge string
+        console.log("Decrypted Challenge:", decryptedChallenge);
+
+        return decryptedChallenge;
+    } catch(error) {
+        console.error('Error:', error);
     }
-    return bytes.buffer;
 }
+async function checkChallenge(decryptedChallenge){
+    const checkResponse = await fetch('https://talkonion.com/auth/checkChallenge', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ decryptedChallenge })
+        });
+        if (!checkResponse.ok) {
+            throw new Error('Failed to check decrypted challenge');
+        }
+        const { challengeValid } = await checkResponse.json();
+        return challengeValid;
+}
+async function authClient() {
+    try {
+        const pubInput = document.getElementById('pubKeyInp');
+        const publicKey = pubInput.value;
+        
+        const challengeResponse = await getChallenge(publicKey);
+        const decryptedChallenge = await decryptChallenge(privateKey, challengeResponse.encryptedChallenge);
+        const challengeValid = await checkChallenge(decryptedChallenge);
+
+        if (challengeValid) {
+            console.log('Challenge is valid.');
+            // Proceed with further actions if needed
+        } else {
+            console.log('Challenge is not valid.');
+            // Handle invalid challenge
+        }
+    } catch (error) {
+        console.error(`Error: ${error}`);
+    }
+}
+//index.js
+const bip39 = require('bip39');
+
+document.getElementById("decryptAndConn").addEventListener("click", authClient);

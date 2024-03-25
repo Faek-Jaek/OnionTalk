@@ -15,5 +15,9 @@
   "bugs": {
     "url": "https://github.com/Faek-Jaek/OnionTalk/issues"
   },
-  "homepage": "https://github.com/Faek-Jaek/OnionTalk#readme"
+  "homepage": "https://github.com/Faek-Jaek/OnionTalk#readme",
+  "dependencies": {
+    "browserify": "^17.0.0",
+    "elliptic": "^6.5.5"
+  }
 }

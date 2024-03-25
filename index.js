@@ -14,6 +14,8 @@ const crypto = require('crypto');
 const { createHash } = require('crypto');
 const { error } = require("console");
 const currentDate = new Date();
+const elliptic = require('elliptic')
+var challengeTable;
 // Setting Vars
 const host = '127.0.0.1';
 const port = 443;
@@ -68,26 +70,44 @@ function isPublicKeyStored(pubKey){
         });
     });
 }
-async function generateAuthKeyPair() {
-    // Generate mnemonic phrase
-    const mnemonic = bip39.generateMnemonic();
+function storeAuthTok(authTok, publicKey){
+    var params = {
+        TableName: "onionTalk_authentication_tokens",
+        Item: {
+            authTok: {N: Number(authTok)},
+            publicKey: { S: String(publicKey) },
+            expTime: { N: Number(currentDate.getTime()+3600000) },
+        },
+      };
+    // Call DynamoDB to add the item to the table
+    ddb.putItem(params, function (err, data) {
+        if (err) {
+            console.log("Error", err);
+        } else {
+            console.log("Success", data);
+        }
+  });
+}
+function checkAuthTok(authTok){
+    return new Promise((resolve, reject) => {
+        const params = {
+            TableName: "onionTalk_authentication_tokens",
+            KeyConditionExpression: "authTok = :pk",
+            ExpressionAttributeValues: {
+                ":pk": { N: Number(authTok) }
+            }
+        };
 
-    // Derive binary seed from mnemonic (seed phrase)
-    const seed = await bip39.mnemonicToSeed(mnemonic);
-
-    // Derive keys from the seed
-    const hash = crypto.createHash('sha256', 'Option: {outputLength: 128}').update(seed).digest('hex');
-    const publicKey = hash.slice(0, 32); // Assuming 64 characters seed, half for public key, half for private key
-    const privateKey = hash.slice(32); 
-    // send public key to dynamoDB
-    storePublicKey(publicKey);
-    console.log(`New User Created: ${publicKey}`);
-    // Return the generated mnemonic phrase, public key, and private key
-    return {
-        mnemonic: mnemonic,
-        publicKey: publicKey,
-        privateKey: privateKey
-    };
+        ddb.query(params, (err, data) => {
+            if (err) {
+                reject(err);
+                return false;
+            } else {
+                resolve(data.Items.length > 0);
+                return true;
+            }
+        });
+    });
 }
 // Function to check if the public key is valid (you can implement your own logic here)
 function isPublicKeyValid(publicKey) {
@@ -110,25 +130,18 @@ function isPublicKeyValid(publicKey) {
     
 }
 
-// Function to encrypt data with a public key using AES-CBC encryption
-function encryptWithPublicKey(data, publicKey) {
-    // Generate a random IV (Initialization Vector)
-    const iv = crypto.randomBytes(16); // IV length is 16 bytes for AES-CBC
-
-    // Create a cipher object with the public key and IV
-    const cipher = crypto.createCipheriv('aes-256-cbc', Buffer.from(publicKey), iv);
-
-    // Encrypt the data
-    let encryptedData = cipher.update(data, 'utf8', 'base64');
-    encryptedData += cipher.final('base64');
-
-    // Combine IV and ciphertext
-    const encryptedDataWithIV = iv.toString('base64') + ':' + encryptedData;
+// Function to generate a new Authentication Token. Stores in DynamoDB, Sets removal timer, returns the authentication token.
+function newAuthToken(publicKey){
     
-    // Return the encrypted data with IV
-    return encryptedDataWithIV;
-}
+    // Create random string to use as Authentication Token using uuidV4 obj created earlier
+    const authTok = uuidV4();
+    
+    // Store new token in DB
+    storeAuthTok(authTok, publicKey);
 
+    //return token
+    return authTok;
+}
 
 
 
@@ -161,26 +174,31 @@ app.get('/uuidV4', (req, res) => {
     // Serve auth page on root URL
     res.sendFile(__dirname + '/src/html/main.html');
 }); */
-app.get('/auth/getKeys', (req, res) => {
-    generateAuthKeyPair().then(({ mnemonic, publicKey, privateKey }) => {
-        res.json({ mnemonic, publicKey, privateKey });
-    }).catch(error => {
-        console.error("Error generating keys:", error);
-        res.status(500).json({ error: 'Failed to generate keys' });
-    });
+app.post('/auth/storeKey', (req, res) => {
+        const publicKey = req.body;
+        storePublicKey(publicKey).then(
+            res.status(200)
+        ).catch(error => {
+            console.error("Error storing public-key:", error);
+            res.status(500).json({ error: 'Failed to store public-key' });
+        });
 });
-app.get('/auth/checkKey*', (req, res) => {
+app.post('/auth/getChallenge', (req, res) => {
     try {
         // Extract the public key from the request query
-        const publicKey = req.query.publicKey;
+        const publicKey = req.body;
         
         // Check if the public key is valid
         if (isPublicKeyValid(publicKey)){
             // Generate a random challenge string using UUID
             const challengeString = uuidV4();
-            console.log(challengeString);             
-            // Encrypt the challenge string using the public key
-            const encryptedChallenge = encryptWithPublicKey(challengeString, publicKey);
+            console.log(`Challenge String: ${challengeString}`);      
+            // Generate a new Elliptic Curve to encrypt challenge
+            const ec = new elliptic.ec('secp256k1');
+            // Encrypt the message using the recipient's public key
+            const encryptedChallenge = ec.keyFromPublic(publicKey).encrypt(challengeString);
+            // Add the publicKey and string to the table
+            challengeTable[publicKey] = challengeString;
             // Send back the encrypted challenge string and public key in the response
             res.json(encryptedChallenge);
         }
@@ -193,11 +211,49 @@ app.get('/auth/checkKey*', (req, res) => {
         res.status(500).json({ error: 'Internal server error' });
     }
 });
+app.post('/auth/checkChallenge', (req, res) => {
+    try {
+        const publicKey = req.body.publicKey;
+        const clientChallenge = req.body.challenge;
+        if (challengeTable[publicKey] === clientChallenge){
+            const authTok = newAuthToken(publicKey);
+            res.setHeader("authTok", authTok);
+            res.status(200);
+        }
+        else{
+            // If the public key is not valid, send an error response
+            res.status(400).json({ error: 'Challenges do not match!' });
+            throw new Error("Challenges do not match!");
+        }
+    } catch(error){
+        console.error(`Error checking challenge: ${error}`);
+    }
+});
+app.get('/auth/checkAuthTok', (req, res) => {
+    try{
+        const authTok = req.cookies.authTok;
+        checkAuthTok(authTok).then(response => {
+            if(response){
+                res.status(200)
+            }
+            else {
+                res.status(400).json({ error: 'Auth token check failed!'});
+            }
+        })
+    } catch(error){
+        console.error(`Error checking authentication token: ${error}`);
+    }
+})
 app.get('/room/:room', (req, res) => {
     
     // Serve auth page on root URL
     res.sendFile(__dirname + '/src/html/room.html');
 });
+app.get('/src/modules/*', (req, res) => {
+    //~~~~~~~~ Modules ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~    
+        const moduleName = req.url.substring(13, req.url.length);
+        res.sendFile(__dirname + `/src/modules/${moduleName}`);
+})
 app.get('/src/*', (req, res) => {
 // ~~~~~~~~ SRC Files ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
     //~~~~~~~~ HTML Files ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -226,6 +282,9 @@ app.get('/src/*', (req, res) => {
     }
     else if (req.url === '/src/js/auth.js' ) { // Add this block to handle requests for 'auth.html'
         res.sendFile(__dirname + '/src/js/auth.js');
+    }
+    else if (req.url === '/src/js/bundle.js' ) { // Add this block to handle requests for 'bundle.js'
+        res.sendFile(__dirname + '/src/js/bundle.js');
     }
     else if (req.url === '/src/js/room.js' ) { // Add this block to handle requests for 'room.html'
         res.sendFile(__dirname + '/src/js/room.js');

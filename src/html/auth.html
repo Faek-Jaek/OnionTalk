@@ -10,7 +10,7 @@
     <link href="https://fonts.googleapis.com/css2?family=Nova+Cut" rel="stylesheet">
     <link href="https://fonts.googleapis.com/css2?family=Nova+Flat" rel="stylesheet">
     <link href="https://talkonion.com/src/css/auth.css" rel="stylesheet">
-    <script src="https://talkonion.com/src/js/auth.js" defer></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/elliptic/6.5.5/elliptic.min.js"></script>
 </head>
 <body>
     <header onclick="loadCreatePanel()">
@@ -25,12 +25,11 @@
                 <h2>Public Key:</h2>
                 <input id="pubKeyInp">
             </div>
-            <button id="getChallenge" onclick="getChallenge(event)">Get Challenge</button>
             <div>
                 <h2>Private Key:</h2>
                 <input id="privKeyInp">
             </div>
-            <button id="decryptAndConn" onclick="decryptAndConn(event)">Decrypt & Connect</button>
+            <button id="decryptAndConn" onclick="authClient(event)">Decrypt & Connect</button>
         </section>
         <section id="createPanel">
             <h1>Create Key Pairs:</h1>
@@ -49,6 +48,7 @@
             <button id="createKeyPairButton" onclick="createKeys()">Create Key Pair</button>
             <h5>Record & keep seed phrase safe. It's the only way to recover a lost key pair</h5>
         </section>
+        <script src="https://talkonion.com/src/js/bundle.js"></script>
     </main>
 </body>
 </html>
