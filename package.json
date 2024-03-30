@@ -1,23 +1,16 @@
 {
   "name": "onion_talk",
   "version": "1.0.0",
-  "description": "",
-  "main": "index.js",
+  "description": "Client-side scripts for Onion Talk",
+  "main": "/home/ec2-user/OnionTalk/index.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "build": "browserify src/js/auth.js -s bip39 -o src/js/bundle.js && browserify src/js/auth.js -s Auth -o src/js/bundle-auth.js",
+    "start": "node index.js"
   },
-  "repository": {
-    "type": "git",
-    "url": "git+https://github.com/Faek-Jaek/OnionTalk.git"
-  },
-  "author": "Stick",
-  "license": "ISC",
-  "bugs": {
-    "url": "https://github.com/Faek-Jaek/OnionTalk/issues"
-  },
-  "homepage": "https://github.com/Faek-Jaek/OnionTalk#readme",
   "dependencies": {
-    "browserify": "^17.0.0",
-    "elliptic": "^6.5.5"
-  }
+    "bip39": "^3.0.11",
+    "brownserify": "^1.0.1"
+  },
+  "author": "anonymous",
+  "license": "ISC"
 }

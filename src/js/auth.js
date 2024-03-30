@@ -1,4 +1,3 @@
-
 function loadCreatePanel(){
     // hide old panel
     let oldPanel = document.getElementById('mainContainer');
@@ -188,7 +187,4 @@ async function authClient() {
         console.error(`Error: ${error}`);
     }
 }
-//index.js
-const bip39 = require('bip39');
-
 document.getElementById("decryptAndConn").addEventListener("click", authClient);

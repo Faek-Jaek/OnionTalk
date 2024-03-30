@@ -286,6 +286,9 @@ app.get('/src/*', (req, res) => {
     else if (req.url === '/src/js/bundle.js' ) { // Add this block to handle requests for 'bundle.js'
         res.sendFile(__dirname + '/src/js/bundle.js');
     }
+    else if (req.url === '/src/js/bundle-auth.js' ) { // Add this block to handle requests for 'bundle-auth.js'
+        res.sendFile(__dirname + '/src/js/bundle-auth.js');
+    }
     else if (req.url === '/src/js/room.js' ) { // Add this block to handle requests for 'room.html'
         res.sendFile(__dirname + '/src/js/room.js');
     }
