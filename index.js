@@ -6,6 +6,7 @@ AWS.config.update({ region: "us-east-1" });
 var ddb = new AWS.DynamoDB({ apiVersion: "2012-08-10" });
 const express = require('express');
 const app = express();
+app.use(express.json());
 const https = require('https');
 const fs = require('fs');
 const { v4: uuidV4 } = require('uuid');
@@ -34,30 +35,33 @@ app.use('/socket.io', function(req, res, next) {
     res.setHeader('Content-Type', 'application/javascript');
     next();
 });
-function storePublicKey(pubKey){
-    var params = {
-        TableName: "onionTalk_user_data_table",
-        Item: {
-          publicKey: { S: String(pubKey) },
-          timeOfCreation: { S: String(currentDate.getTime()) },
-        },
-      };
-    // Call DynamoDB to add the item to the table
-    ddb.putItem(params, function (err, data) {
-        if (err) {
-            console.log("Error", err);
-        } else {
-            console.log("Success", data);
-        }
-  });
+async function storePublicKey(pubKey) {
+    try {
+        const params = {
+            TableName: "onionTalk_user_data_table",
+            Item: {
+                publicKey: { S: String(pubKey) },
+                timeOfCreation: { S: String(currentDate.getTime()) },
+            },
+        };
+
+        // Call DynamoDB to add the item to the table
+        const data = await ddb.putItem(params).promise();
+        console.log("Success", data);
+        return data; // Return the data if needed
+    } catch (error) {
+        console.error("Error storing public-key:", error);
+        throw error; // Throw the error for the caller to handle
+    }
 }
+
 function isPublicKeyStored(pubKey){
     return new Promise((resolve, reject) => {
         const params = {
             TableName: "onionTalk_user_data_table",
             KeyConditionExpression: "publicKey = :pk",
             ExpressionAttributeValues: {
-                ":pk": { S: pubKey }
+                ":pk": { S: String(pubKey) }
             }
         };
 
@@ -174,20 +178,23 @@ app.get('/uuidV4', (req, res) => {
     // Serve auth page on root URL
     res.sendFile(__dirname + '/src/html/main.html');
 }); */
-app.post('/auth/storeKey', (req, res) => {
-        const publicKey = req.body;
-        storePublicKey(publicKey).then(
-            res.status(200)
-        ).catch(error => {
-            console.error("Error storing public-key:", error);
-            res.status(500).json({ error: 'Failed to store public-key' });
-        });
+app.post('/auth/storeKey', async (req, res) => {
+    try {
+        const publicKey = req.body.publicKey;
+        await storePublicKey(publicKey);
+        res.status(200).send('Public key stored successfully'); // Sending response after successful storage
+    } catch (error) {
+        console.error("Error storing public-key:", error);
+        res.status(500).json({ error: 'Failed to store public-key' });
+    }
 });
+
 app.post('/auth/getChallenge', (req, res) => {
     try {
         // Extract the public key from the request query
-        const publicKey = req.body;
-        
+        const publicKey = req.body.publicKey;
+        const publicKeyBuffer = Buffer.from(publicKey, 'hex');
+
         // Check if the public key is valid
         if (isPublicKeyValid(publicKey)){
             // Generate a random challenge string using UUID
@@ -196,7 +203,8 @@ app.post('/auth/getChallenge', (req, res) => {
             // Generate a new Elliptic Curve to encrypt challenge
             const ec = new elliptic.ec('secp256k1');
             // Encrypt the message using the recipient's public key
-            const encryptedChallenge = ec.keyFromPublic(publicKey).encrypt(challengeString);
+            const encryptedChallenge = ec.keyFromPublic(publicKeyBuffer).encrypt(challengeString).toString('hex');
+            
             // Add the publicKey and string to the table
             challengeTable[publicKey] = challengeString;
             // Send back the encrypted challenge string and public key in the response

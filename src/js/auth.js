@@ -33,29 +33,34 @@ async function storeKey(publicKey) {
             headers: {
                 'Content-Type': 'application/json'
             },
-            body: JSON.stringify({ publicKey })
+            body: JSON.stringify({ publicKey: String(publicKey) })
         });
         if (!keyResponse.ok) {
             throw new Error('KeyResponse not OK');
         }
+        return keyResponse; // Return the keyResponse
     } catch (error) {
         console.error('Error storing public-key:', error);
     }
 }
 
-function createKeys(){
+
+
+async function createKeys(){
     try{
         // Generate a mnemonic phrase (12 words)
-        const mnemonic = Bitcoin.bip39.generateMnemonic();
+        const mnemonic = bip39.generateMnemonic();
 
         // Create a seed buffer from the mnemonic
-        const seed = Bitcoin.bip39.mnemonicToSeedSync(mnemonic);
+        const seedBuffer = bip39.mnemonicToSeedSync(mnemonic);
 
         // Create an elliptic curve instance using the secp256k1 curve
         const ec = new elliptic.ec('secp256k1');
 
-        // Derive a key pair from the seed
-        const keyPair = ec.keyFromSecret(seed);
+        // Derive a key pair directly from the seed
+        const keyPair = ec.genKeyPair({
+            entropy: seedBuffer
+        });
 
         // Get the public key in uncompressed format
         const publicKey = keyPair.getPublic('hex');
@@ -69,33 +74,38 @@ function createKeys(){
             publicKey: publicKey,
             privateKey: privateKey
         };
+
+        // Log that keys were created
+        console.log('Keys created: ', keys.publicKey);
+
+        // Store the public key
+        await storeKey(keys.publicKey);
+
+        // Display the mnemonic phrase and keys
+        console.log("Mnemonic Phrase:", keys.mnemonic);
+        console.log("Public Key:", keys.publicKey);
+        console.log("Private Key:", keys.privateKey);
+
+        const pubKeyH2 = document.querySelector('div#keySection').firstElementChild.querySelector('h2.key');
+        const privKeyH2 = document.querySelector('div#keySection').lastElementChild.querySelector('h2.key');
+        const seedPhraseH4 = document.querySelector('div#seedPhrase').lastElementChild;
+
+        pubKeyH2.innerText = keys.publicKey;
+        privKeyH2.innerText = keys.privateKey;
+        seedPhraseH4.innerText = keys.mnemonic;
+
+        // Hide "Create Key Pairs" Button
+        document.querySelector('button#createKeyPairButton').style.display = 'none';
+
+        // Return keys for further use if needed
         return keys;
     } catch (error) {
         console.error('Error generating key-pair: ', error);
+        // Throw error for the caller to handle
+        throw error;
     }
-    then(keys => {
-        storeKey(keys.publicKey)
-    }).catch(error => {
-        console.error('Error storing public-key: ', error);
-    }).then(keys => {
-        // Display the mnemonic phrase and keys
-            console.log("Mnemonic Phrase:", keys.mnemonic);
-            console.log("Public Key:", keys.publicKey);
-            console.log("Private Key:", keys.privateKey);
-
-            const pubKeyH2 = document.querySelector('div#keySection').firstElementChild.querySelector('h2.key');
-            const privKeyH2 = document.querySelector('div#keySection').lastElementChild.querySelector('h2.key');
-            const seedPhraseH4 = document.querySelector('div#seedPhrase').lastElementChild;
-
-            pubKeyH2.innerText = keys.publicKey;
-            privKeyH2.innerText = keys.privateKey;
-            seedPhraseH4.innerText = keys.mnemonic;
-    }).catch(error => {
-        console.error('Error displaying key-pair: ', error);
-    }); 
-    // Hide "Create Key Pairs" Button
-    document.querySelector('button#createKeyPairButton').style.display = 'none';
 }
+
 function copyTextButton(event){
     const button = event.target;
     const container = button.closest('div.keyDiv');
@@ -119,12 +129,12 @@ function copyTextButton(event){
 async function getChallenge(publicKey) {
     try {
         // Fetch the challenge hash from the server, including the public key as a query parameter
-        fetch(`https://talkonion.com/auth/getChallenge`, {
+        return fetch(`https://talkonion.com/auth/getChallenge`, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json'
             },
-            body: JSON.stringify({ publicKey })
+            body: JSON.stringify({ publicKey: String(publicKey) })
         }).then(response => {
             if (!response.ok) {
                 throw new Error('Failed to fetch challenge hash');
@@ -143,7 +153,7 @@ function decryptChallenge(privateKey, encryptedChallenge){
 
         // Use the private key to decrypt the encrypted challenge
         const ec = new elliptic.ec('secp256k1');
-        const decryptedChallenge = ec.keyFromPrivate(privateKey).decrypt(encryptedChallenge).toString();
+        const decryptedChallenge = ec.keyFromPrivate(privateKey).decrypt(Buffer.from(encryptedChallenge, 'hex')).toString();
 
         // Now 'decryptedChallenge' contains the decrypted challenge string
         console.log("Decrypted Challenge:", decryptedChallenge);
@@ -153,13 +163,14 @@ function decryptChallenge(privateKey, encryptedChallenge){
         console.error('Error:', error);
     }
 }
-async function checkChallenge(decryptedChallenge){
+async function checkChallenge(publicKey, decryptedChallenge){
     const checkResponse = await fetch('https://talkonion.com/auth/checkChallenge', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json'
             },
-            body: JSON.stringify({ decryptedChallenge })
+            body: JSON.stringify({ publicKey: JSON.stringify(publicKey),
+                    challenge: JSON.stringify(decryptedChallenge)})
         });
         if (!checkResponse.ok) {
             throw new Error('Failed to check decrypted challenge');
@@ -169,12 +180,18 @@ async function checkChallenge(decryptedChallenge){
 }
 async function authClient() {
     try {
+        let publicKey;
+        let privateKey;
+
         const pubInput = document.getElementById('pubKeyInp');
-        const publicKey = pubInput.value;
+        publicKey = pubInput.value;
+        const privInput = document.getElementById('privKeyInp');
+        privateKey= privInput.value;
+
         
         const challengeResponse = await getChallenge(publicKey);
         const decryptedChallenge = await decryptChallenge(privateKey, challengeResponse.encryptedChallenge);
-        const challengeValid = await checkChallenge(decryptedChallenge);
+        const challengeValid = await checkChallenge(publicKey, decryptedChallenge);
 
         if (challengeValid) {
             console.log('Challenge is valid.');
@@ -187,4 +204,4 @@ async function authClient() {
         console.error(`Error: ${error}`);
     }
 }
-document.getElementById("decryptAndConn").addEventListener("click", authClient);
+document.querySelector(`button#createKeyPairButton`).addEventListener("click", createKeys);
