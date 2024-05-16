@@ -44,39 +44,29 @@ async function storeKey(publicKey) {
     }
 }
 
+async function createKeys() {
+    try {
+        // Generate a 32-byte BIP39 mnemonic phrase
+        const mnemonic = bip39.generateMnemonic(256); // 32 bytes = 256 bits
 
-
-async function createKeys(){
-    try{
-        // Generate a mnemonic phrase (12 words)
-        const mnemonic = bip39.generateMnemonic();
-
-        // Create a seed buffer from the mnemonic
+        // Derive seed from mnemonic
         const seedBuffer = bip39.mnemonicToSeedSync(mnemonic);
 
-        // Create an elliptic curve instance using the secp256k1 curve
-        const ec = new elliptic.ec('secp256k1');
+        // Use the seed as the private key
+        const privateKey = await eccrypto.generatePrivate(seedBuffer);
 
-        // Derive a key pair directly from the seed
-        const keyPair = ec.genKeyPair({
-            entropy: seedBuffer
-        });
-
-        // Get the public key in uncompressed format
-        const publicKey = keyPair.getPublic('hex');
-
-        // Get the private key
-        const privateKey = keyPair.getPrivate('hex');
+        // Get the corresponding public key
+        const publicKey = eccrypto.getPublic(privateKey);
 
         // Construct the keys object
         const keys = {
             mnemonic: mnemonic,
-            publicKey: publicKey,
-            privateKey: privateKey
+            publicKey: publicKey.toString('hex'),
+            privateKey: privateKey.toString('hex')
         };
 
-        // Log that keys were created
-        console.log('Keys created: ', keys.publicKey);
+        // Log keys
+        console.log('Keys created:', keys);
 
         // Store the public key
         await storeKey(keys.publicKey);
@@ -99,17 +89,18 @@ async function createKeys(){
 
         // Return keys for further use if needed
         return keys;
-    } catch (error) {
-        console.error('Error generating key-pair: ', error);
-        // Throw error for the caller to handle
-        throw error;
-    }
+        } catch (error) {
+            console.error('Error generating key-pair: ', error);
+            // Throw error for the caller to handle
+            throw error;
+        }
 }
 
+
 function copyTextButton(event){
-    const button = event.target;
-    const container = button.closest('div.keyDiv');
-    const h2Element = container.querySelector('h2.key');
+    const button = event.target; // get button element that was clicked
+    const container = button.closest('div.keyDiv'); // button container
+    const h2Element = container.querySelector('h2.key'); // select neighboring h2 (representing a key)
     const textToCopy = h2Element.innerText;
 
     const textarea = document.createElement('textarea');
@@ -134,7 +125,7 @@ async function getChallenge(publicKey) {
             headers: {
                 'Content-Type': 'application/json'
             },
-            body: JSON.stringify({ publicKey: String(publicKey) })
+            body: JSON.stringify({ 'publicKey': String(publicKey) })
         }).then(response => {
             if (!response.ok) {
                 throw new Error('Failed to fetch challenge hash');
@@ -149,14 +140,13 @@ async function getChallenge(publicKey) {
 }
 function decryptChallenge(privateKey, encryptedChallenge){
     try{
-        console.log('Encrypted Challenge: ', encryptedChallenge);
+        console.log(`Encrypted Challenge: ${encryptedChallenge}`);
 
         // Use the private key to decrypt the encrypted challenge
-        const ec = new elliptic.ec('secp256k1');
-        const decryptedChallenge = ec.keyFromPrivate(privateKey).decrypt(Buffer.from(encryptedChallenge, 'hex')).toString();
+        const decryptedChallenge = eccrypto.decrypt(privateKey, buffer.Buffer.from(encryptedChallenge, 'hex')).toString();
 
         // Now 'decryptedChallenge' contains the decrypted challenge string
-        console.log("Decrypted Challenge:", decryptedChallenge);
+        console.log(`Decrypted Challenge: ${decryptedChallenge}`);
 
         return decryptedChallenge;
     } catch(error) {
@@ -194,10 +184,10 @@ async function authClient() {
         const challengeValid = await checkChallenge(publicKey, decryptedChallenge);
 
         if (challengeValid) {
-            console.log('Challenge is valid.');
+            console.log('Challenge is valid!');
             // Proceed with further actions if needed
         } else {
-            console.log('Challenge is not valid.');
+            console.log('Challenge failed!');
             // Handle invalid challenge
         }
     } catch (error) {

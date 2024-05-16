@@ -4,31 +4,44 @@ const AWS = require("aws-sdk");
 AWS.config.update({ region: "us-east-1" });
 // Create the DynamoDB service object
 var ddb = new AWS.DynamoDB({ apiVersion: "2012-08-10" });
-const express = require('express');
-const app = express();
-app.use(express.json());
+
+
 const https = require('https');
 const fs = require('fs');
 const { v4: uuidV4 } = require('uuid');
 const bip39 = require('bip39');
 const crypto = require('crypto');
-const { createHash } = require('crypto');
 const { error } = require("console");
 const currentDate = new Date();
-const elliptic = require('elliptic')
-var challengeTable;
-// Setting Vars
-const host = '127.0.0.1';
+const elliptic = require('elliptic');
+var eccrypto = require('eccrypto');
+var challengeTable = {}; 
+
+
+
+// SET UP THE SERVER VAR's & Server Obj
+const privateKey = fs.readFileSync('/etc/ssl/acme/talkonion.com_ecc/talkonion.com.key');
+const certificate = fs.readFileSync('/etc/ssl/acme/talkonion.com_ecc/talkonion.com.cer');
+const intermediate = fs.readFileSync('/etc/ssl/acme/talkonion.com_ecc/ca.cer');
+const root = fs.readFileSync('/etc/ssl/acme/talkonion.com_ecc/fullchain.cer');
+
+const credentials = {
+  key: privateKey,
+  cert: certificate,
+  ca: [intermediate, root] // Concatenate intermediate and root certificates
+};
+// Initializing port and setting up express to be used withing our server
 const port = 443;
+const express = require('express');
+const app = express();
+app.use(express.json());
 
-const privateKey = fs.readFileSync('/etc/letsencrypt/live/talkonion.com/privkey.pem'); // Path to your private key file
-const certificate = fs.readFileSync('/etc/letsencrypt/live/talkonion.com/fullchain.pem'); // Path to your full chain file
-
-const server = https.createServer({
-    key: privateKey,
-    cert: certificate
-}, app);
+const server = https.createServer(credentials, app);
+server.listen(port, () => {
+  console.log(`Server is running on https://localhost:${port}`);
+});
 const io = require('socket.io')(server);
+
 app.use(express.static('src'));
 app.use(express.static('node_modules/socket.io-client/'));
 app.use('/socket.io', function(req, res, next) {
@@ -78,9 +91,9 @@ function storeAuthTok(authTok, publicKey){
     var params = {
         TableName: "onionTalk_authentication_tokens",
         Item: {
-            authTok: {N: Number(authTok)},
+            authTok: {S: String(authTok)},
             publicKey: { S: String(publicKey) },
-            expTime: { N: Number(currentDate.getTime()+3600000) },
+            expTime: { N: String(currentDate.getTime()+3600000) },
         },
       };
     // Call DynamoDB to add the item to the table
@@ -120,7 +133,7 @@ function isPublicKeyValid(publicKey) {
         // make sure the `exists` promise is properly returned
         if (exists){
             console.log(`Public Key: ${publicKey} exists, and is stored.`)
-            return publicKey && typeof publicKey === 'string' && publicKey.length == 32;
+            return publicKey && typeof publicKey === 'string' && publicKey.length == 64;
         }
         else {
             // the exists promise was not returned and thus an error has occured.
@@ -138,7 +151,7 @@ function isPublicKeyValid(publicKey) {
 function newAuthToken(publicKey){
     
     // Create random string to use as Authentication Token using uuidV4 obj created earlier
-    const authTok = uuidV4();
+    const authTok = uuidV4().replace(/-/g,"");
     
     // Store new token in DB
     storeAuthTok(authTok, publicKey);
@@ -188,41 +201,39 @@ app.post('/auth/storeKey', async (req, res) => {
         res.status(500).json({ error: 'Failed to store public-key' });
     }
 });
-
-app.post('/auth/getChallenge', (req, res) => {
+app.post('/auth/getChallenge', async (req, res) => {
     try {
-        // Extract the public key from the request query
+        // Extract the public key from the request body
         const publicKey = req.body.publicKey;
-        const publicKeyBuffer = Buffer.from(publicKey, 'hex');
 
-        // Check if the public key is valid
-        if (isPublicKeyValid(publicKey)){
+        // Check if the public key is in the expected format and length
+        if (typeof publicKey === 'string' && publicKey.length === 130) {
             // Generate a random challenge string using UUID
             const challengeString = uuidV4();
-            console.log(`Challenge String: ${challengeString}`);      
-            // Generate a new Elliptic Curve to encrypt challenge
-            const ec = new elliptic.ec('secp256k1');
+            console.log(`Challenge String: ${challengeString}`);
+
             // Encrypt the message using the recipient's public key
-            const encryptedChallenge = ec.keyFromPublic(publicKeyBuffer).encrypt(challengeString).toString('hex');
-            
-            // Add the publicKey and string to the table
-            challengeTable[publicKey] = challengeString;
+            const encryptedChallenge = await eccrypto.encrypt(Buffer.from(publicKey, 'hex'), Buffer.from(challengeString));
+
             // Send back the encrypted challenge string and public key in the response
-            res.json(encryptedChallenge);
-        }
-        else {
-            // If the public key is not valid, send an error response
-            res.status(400).json({ error: 'Invalid public key' });
+            res.json({ encryptedChallenge: encryptedChallenge.toString('hex'), publicKey: publicKey });
+        } else {
+            // If the public key is not in the expected format or length, send an error response
+            res.status(400).json({ error: 'Invalid public key format or length' });
         }
     } catch (error) {
         console.error("Error processing request:", error);
         res.status(500).json({ error: 'Internal server error' });
     }
 });
+
 app.post('/auth/checkChallenge', (req, res) => {
     try {
         const publicKey = req.body.publicKey;
         const clientChallenge = req.body.challenge;
+        console.log(`Associated Public Key: ${publicKey}`);
+        console.log(`Expected Challenge String: ${challengeTable[publicKey]}`);
+        console.log(`Received Challenge String: ${clientChallenge}`);
         if (challengeTable[publicKey] === clientChallenge){
             const authTok = newAuthToken(publicKey);
             res.setHeader("authTok", authTok);
@@ -335,6 +346,31 @@ app.get('/src/*', (req, res) => {
       console.log("IP of Request: "+req.ip)
     }
 });
+// Define the directory where challenge files are located
+const challengeDirectory = 'keys/acmeKeys/.well-known/acme-challenge/';
+
+// Define the route handler
+app.get('/.well-known/acme-challenge/:filename', (req, res) => {
+    // Extract the filename from the URL
+    const filename = req.params.filename;
+    
+    // Construct the full path to the file
+    const filePath = path.join(__dirname, challengeDirectory, filename);
+
+    // Read the file from disk and send it in the response
+    fs.readFile(filePath, (err, data) => {
+        if (err) {
+            // If the file doesn't exist or there's an error reading it, send a 404 response
+            res.status(404).send('File not found');
+            return;
+        }
+        // Set the Content-Type header to text/plain
+        res.set('Content-Type', 'text/plain');
+        // Send the file in the response
+        res.send(data);
+    });
+});
+
 // Define a custom middleware function to log after response is sent - Final Catchall
 const logAfterResponse = (req, res, next) => {
     const oldEnd = res.end;
@@ -349,11 +385,6 @@ const logAfterResponse = (req, res, next) => {
 
     next();
 };
-
 // Apply the custom middleware globally
 app.use(logAfterResponse);
 
-
-server.listen(port, ["0.0.0.0", "::"], () => {
-  console.log(`Server is running on https://${host}:${port}`);
-});

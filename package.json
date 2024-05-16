@@ -8,8 +8,14 @@
     "start": "node index.js"
   },
   "dependencies": {
-    "bip39": "^3.0.11",
-    "brownserify": "^1.0.1"
+    "aws-sdk": "latest",
+    "bip39": "latest",
+    "browserify": "latest",
+    "eccrypto": "^1.1.6",
+    "elliptic": "latest",
+    "express": "latest",
+    "nodejs": "latest",
+    "socket.io": "latest"
   },
   "author": "anonymous",
   "license": "ISC"
